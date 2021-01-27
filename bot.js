@@ -48,6 +48,7 @@ const Member = sequelize.define('members', {
         type: Sequelize.BOOLEAN,
         defaultValue: 1,
     },
+    joined_voice_at: Sequelize.DATE,
     last_level_reported: {
         type: Sequelize.INTEGER.UNSIGNED,
         defaultValue: 0,
@@ -597,6 +598,42 @@ client.on('message', async (msg) => {
 
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`)
+})
+
+client.on('voiceStateUpdate', async (oldState, newState) => {
+    if (! oldState.channel && newState.channel) {
+        let member = await Member.findOne({ where: { guild_id: newState.guild.id, user_id: newState.member.id }})
+
+        if (! member) member = await Member.create({ guild_id: newState.guild.id, user_id: newState.member.id })
+
+        if (member.is_blacklisted) return
+
+        let channelIsBlacklisted = await BlacklistedChannel.findOne({ where: { id: newState.channel.id } })
+
+        if (channelIsBlacklisted) return await member.update({ joined_voice_at: null })
+
+        await member.update({ joined_voice_at: new Date() })
+    }
+
+    if (oldState.channel && ! newState.channel) {
+        let member = await Member.findOne({ where: { guild_id: oldState.guild.id, user_id: oldState.member.id }})
+
+        if (! member) member = await Member.create({ guild_id: oldState.guild.id, user_id: oldState.member.id })
+
+        if (member.is_blacklisted) return
+
+        let channelIsBlacklisted = await BlacklistedChannel.findOne({ where: { id: oldState.channel.id } })
+
+        if (channelIsBlacklisted) return await member.update({ joined_voice_at: null })
+
+        if (! member.joined_voice_at) return
+
+        let duration = Math.round(new Date().getMinutes() - new Date(member.joined_voice_at).getMinutes())
+
+        let newXp = member.xp + duration
+
+        await member.update({ joined_voice_at: null, xp: newXp })
+    }
 })
 
 client.login(process.env.DISCORD_BOT_TOKEN)
