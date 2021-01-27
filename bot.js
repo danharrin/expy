@@ -139,6 +139,8 @@ client.on('message', async (msg) => {
 
                     let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: userId }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToReward.id })
 
+                    if (member.is_blacklisted) return
+
                     let newXp = member.xp + config.dBumpXp
 
                     if (newXp < 0) newXp = 0
