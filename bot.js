@@ -1,5 +1,10 @@
 const config = {
     /**
+     * Amount of XP rewarded when the user !d bumps successfully.
+     */
+    dBumpXp: 50,
+
+    /**
      * The higher the number, the less XP is required to reach the next level.
      */
     levelConstant: 0.25,
@@ -88,9 +93,7 @@ const calculateXp = (level) => {
 client.on('guildMemberAdd', async (member) => {
     if (member.bot) return
 
-    let memberToAdd = await Member.findOne({ where: { guild_id: member.guild.id, user_id: member.id }})
-
-    if (! memberToAdd) memberToAdd = await Member.create({ guild_id: member.guild.id, user_id: member.id })
+    let memberToAdd = await Member.findOne({ where: { guild_id: member.guild.id, user_id: member.id }}) || await Member.create({ guild_id: member.guild.id, user_id: member.id })
 
     if (! memberToAdd.is_member) await memberToAdd.update({ is_member: true })
 
@@ -120,17 +123,71 @@ client.on('guildMemberRemove', async (member) => {
 })
 
 client.on('message', async (msg) => {
+    let guild = await Guild.findOne({ where: { id: msg.guild.id } }) || await Guild.create({ id: msg.guild.id })
+
     if (msg.webhookID) return
 
-    if (msg.author.bot) return
+    if (msg.author.bot) {
+        msg.embeds
+            .filter((embed) => embed.description && embed.description.toLowerCase().includes('bump done'))
+            .forEach((embed) => {
+                let mentions = embed.description.match(/<@!?\d{17,19}>/g)
 
-    let guild = await Guild.findOne({ where: { id: msg.guild.id } })
+                mentions.forEach(async (mention) => {
+                    if (! mention.startsWith('<@') || ! mention.endsWith('>')) return
 
-    if (! guild) guild = await Guild.create({ id: msg.guild.id })
+                    let userId = mention.slice(2, -1)
 
-    let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: msg.author.id }})
+                    if (userId.startsWith('!')) userId = userId.slice(1)
 
-    if (! member) member = await Member.create({ guild_id: msg.guild.id, user_id: msg.author.id })
+                    let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: userId }}) || await Member.create({ guild_id: msg.guild.id, user_id: userId })
+
+                    let newXp = member.xp + config.dBumpXp
+
+                    if (newXp < 0) newXp = 0
+
+                    await member.update({ xp: newXp })
+
+                    msg.channel.send(`${mention} thank you for \`!d bump\`ing! Here's ${config.dBumpXp} XP, for a new total of ${newXp}.`)
+
+                    let level = calculateLevel(member.xp)
+
+                    let ranks = await Rank.findAll({ order: [['level', 'DESC']], where: { guild_id: msg.guild.id } })
+
+                    if (ranks.length) {
+                        let correctRank = ranks.find((rank) => +rank.level <= +level)
+
+                        ranks.forEach((rank) => {
+                            if (correctRank && rank.role_id === correctRank.role_id) return
+
+                            msg.member.roles.remove(rank.role_id)
+                        })
+
+                        if (correctRank) msg.member.roles.add(correctRank.role_id)
+                    }
+
+                    if (member.last_level_reported < level) {
+                        msg.channel.send({
+                            embed: {
+                                color: 0xc026d3,
+                                description: `You just reached level ${level}.`,
+                                thumbnail: {
+                                    url: msg.author.displayAvatarURL(),
+                                },
+                                timestamp: new Date(),
+                                title: `Congratulations ${msg.author.username}!`,
+                            },
+                        })
+
+                        await member.update({ last_level_reported: level })
+                    }
+                })
+            })
+
+        return
+    }
+
+    let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: msg.author.id }}) || await Member.create({ guild_id: msg.guild.id, user_id: msg.author.id })
 
     let channelIsBlacklisted = await BlacklistedChannel.findOne({ where: { id: msg.channel.id } })
 
@@ -265,9 +322,7 @@ client.on('message', async (msg) => {
         let memberToBlacklist = msg.mentions.members.first() || msg.guild.members.cache.find((member) => +member.id === +args[0])
 
         if (memberToBlacklist) {
-            let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToBlacklist.id }})
-
-            if (! member) member = await Member.create({ guild_id: msg.guild.id, user_id: memberToBlacklist.id })
+            let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToBlacklist.id }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToBlacklist.id })
 
             await member.update({ is_blacklisted: ! member.is_blacklisted })
 
@@ -280,17 +335,17 @@ client.on('message', async (msg) => {
 
         if (! channelToBlacklist) return msg.reply(`please specify a member or channel to blacklist.`)
 
-        let blacklistedChannel = await BlacklistedChannel.findOne({ where: { id: channelToBlacklist.id }})
+        let blacklistedChannel = await BlacklistedChannel.findOne({ where: { id: channelToBlacklist.id }}) || await BlacklistedChannel.create({ id: channelToBlacklist.id, guild_id: msg.guild.id })
 
         let actionDescription = 'blacklisted'
-
-        if (! blacklistedChannel) await BlacklistedChannel.create({ id: channelToBlacklist.id, guild_id: msg.guild.id })
 
         if (blacklistedChannel) {
             await blacklistedChannel.destroy()
 
             actionDescription = 'unblacklisted'
         }
+
+        if (! blacklistedChannel) await BlacklistedChannel.create({ id: channelToBlacklist.id, guild_id: msg.guild.id })
 
         return msg.reply(`${channelToBlacklist} has been ${actionDescription}.`)
     }
@@ -343,9 +398,7 @@ client.on('message', async (msg) => {
     if (command === 'level' || command === 'rank' || command === 'xp') {
         let memberToReport = msg.mentions.members.first() || msg.guild.members.cache.find((member) => +member.id === +args[0]) || msg.member
 
-        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToReport.id }})
-
-        if (! member) member = await Member.create({ guild_id: msg.guild.id, user_id: memberToReport.id })
+        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToReport.id }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToReport.id })
 
         if (member.is_blacklisted) return msg.reply('you have been blacklisted from receiving any XP.')
 
@@ -379,9 +432,7 @@ client.on('message', async (msg) => {
 
         if (! xpChange || ! Number.isInteger(xpChange)) return msg.reply(`please specify the amount to modify the member's XP by.`)
 
-        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToModify.id }})
-
-        if (! member) member = await Member.create({ guild_id: msg.guild.id, user_id: memberToModify.id })
+        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToModify.id }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToModify.id })
 
         let newXp = member.xp + xpChange
 
@@ -510,9 +561,7 @@ client.on('message', async (msg) => {
 
         if (! Number.isInteger(newLevel)) return msg.reply(`please specify the member's new level.`)
 
-        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToModify.id }})
-
-        if (! member) member = await Member.create({ guild_id: msg.guild.id, user_id: memberToModify.id })
+        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToModify.id }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToModify.id })
 
         let newXp = calculateXp(newLevel)
 
@@ -550,9 +599,7 @@ client.on('message', async (msg) => {
 
         if (! Number.isInteger(newXp)) return msg.reply(`please specify the member's new XP.`)
 
-        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToModify.id }})
-
-        if (! member) member = await Member.create({ guild_id: msg.guild.id, user_id: memberToModify.id })
+        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToModify.id }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToModify.id })
 
         await member.update({ xp: newXp })
 
@@ -602,9 +649,7 @@ client.on('ready', async () => {
 
 client.on('voiceStateUpdate', async (oldState, newState) => {
     if (! oldState.channel && newState.channel) {
-        let member = await Member.findOne({ where: { guild_id: newState.guild.id, user_id: newState.member.id }})
-
-        if (! member) member = await Member.create({ guild_id: newState.guild.id, user_id: newState.member.id })
+        let member = await Member.findOne({ where: { guild_id: newState.guild.id, user_id: newState.member.id }}) || await Member.create({ guild_id: newState.guild.id, user_id: newState.member.id })
 
         if (member.is_blacklisted) return
 
@@ -616,9 +661,7 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
     }
 
     if (oldState.channel && ! newState.channel) {
-        let member = await Member.findOne({ where: { guild_id: oldState.guild.id, user_id: oldState.member.id }})
-
-        if (! member) member = await Member.create({ guild_id: oldState.guild.id, user_id: oldState.member.id })
+        let member = await Member.findOne({ where: { guild_id: oldState.guild.id, user_id: oldState.member.id }}) || await Member.create({ guild_id: oldState.guild.id, user_id: oldState.member.id })
 
         if (member.is_blacklisted) return
 
