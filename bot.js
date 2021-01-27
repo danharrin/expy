@@ -419,46 +419,6 @@ client.on('message', async (msg) => {
         })
     }
 
-    if (command === 'modifyxp') {
-        if (! msg.member.hasPermission('ADMINISTRATOR')) return
-
-        if (args.length < 2) return msg.reply(`please specify a member and the amount to modify their XP by.`)
-
-        let memberToModify = msg.mentions.members.first() || msg.guild.members.cache.find((member) => +member.id === +args[0])
-
-        if (! memberToModify) return msg.reply(`please specify a member to modify.`)
-
-        let xpChange = +args[1]
-
-        if (! xpChange || ! Number.isInteger(xpChange)) return msg.reply(`please specify the amount to modify the member's XP by.`)
-
-        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToModify.id }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToModify.id })
-
-        let newXp = member.xp + xpChange
-
-        if (newXp < 0) newXp = 0
-
-        await member.update({ xp: newXp })
-
-        let ranks = await Rank.findAll({ order: [['level', 'DESC']], where: { guild_id: msg.guild.id } })
-
-        let newLevel = calculateLevel(newXp)
-
-        if (ranks.length) {
-            let correctRank = ranks.find((rank) => +rank.level <= newLevel)
-
-            ranks.forEach((rank) => {
-                if (correctRank && rank.role_id === correctRank.role_id) return
-
-                memberToModify.roles.remove(rank.role_id)
-            })
-
-            if (correctRank) memberToModify.roles.add(correctRank.role_id)
-        }
-
-        return msg.reply(`${memberToModify} now has ${newXp} XP and is on level ${newLevel}.`)
-    }
-
     if (command === 'prefix') {
         if (! msg.member.hasPermission('ADMINISTRATOR')) return
 
@@ -506,6 +466,46 @@ client.on('message', async (msg) => {
         })
     }
 
+    if (command === 'reward') {
+        if (! msg.member.hasPermission('ADMINISTRATOR')) return
+
+        if (args.length < 2) return msg.reply(`please specify a member and the amount of XP to reward them with.`)
+
+        let memberToReward = msg.mentions.members.first() || msg.guild.members.cache.find((member) => +member.id === +args[0])
+
+        if (! memberToReward) return msg.reply(`please specify a member to reward.`)
+
+        let xpChange = +args[1]
+
+        if (! xpChange || ! Number.isInteger(xpChange) || xpChange < 1) return msg.reply(`please specify the amount of XP to reward the member with.`)
+
+        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToReward.id }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToReward.id })
+
+        let newXp = member.xp + xpChange
+
+        if (newXp < 0) newXp = 0
+
+        await member.update({ xp: newXp })
+
+        let ranks = await Rank.findAll({ order: [['level', 'DESC']], where: { guild_id: msg.guild.id } })
+
+        let newLevel = calculateLevel(newXp)
+
+        if (ranks.length) {
+            let correctRank = ranks.find((rank) => +rank.level <= newLevel)
+
+            ranks.forEach((rank) => {
+                if (correctRank && rank.role_id === correctRank.role_id) return
+
+                memberToReward.roles.remove(rank.role_id)
+            })
+
+            if (correctRank) memberToReward.roles.add(correctRank.role_id)
+        }
+
+        return msg.reply(`${memberToReward} now has ${newXp} XP and is on level ${newLevel}.`)
+    }
+
     if (command === 'removerank' || command === 'rr') {
         if (! msg.member.hasPermission('ADMINISTRATOR')) return
 
@@ -544,6 +544,46 @@ client.on('message', async (msg) => {
         await Token.destroy({ where: { guild_id: msg.guild.id, key: key } })
 
         let reply = await msg.reply(`the token \`${key}\` has been revoked.`)
+    }
+
+    if (command === 'sanction') {
+        if (! msg.member.hasPermission('ADMINISTRATOR')) return
+
+        if (args.length < 2) return msg.reply(`please specify a member and the amount of XP to sanction them by.`)
+
+        let memberToSanction = msg.mentions.members.first() || msg.guild.members.cache.find((member) => +member.id === +args[0])
+
+        if (! memberToSanction) return msg.reply(`please specify a member to sanction.`)
+
+        let xpChange = +args[1]
+
+        if (! xpChange || ! Number.isInteger(xpChange) || xpChange < 1) return msg.reply(`please specify the amount of XP to sanction the member by.`)
+
+        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToSanction.id }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToSanction.id })
+
+        let newXp = member.xp - xpChange
+
+        if (newXp < 0) newXp = 0
+
+        await member.update({ xp: newXp })
+
+        let ranks = await Rank.findAll({ order: [['level', 'DESC']], where: { guild_id: msg.guild.id } })
+
+        let newLevel = calculateLevel(newXp)
+
+        if (ranks.length) {
+            let correctRank = ranks.find((rank) => +rank.level <= newLevel)
+
+            ranks.forEach((rank) => {
+                if (correctRank && rank.role_id === correctRank.role_id) return
+
+                memberToSanction.roles.remove(rank.role_id)
+            })
+
+            if (correctRank) memberToSanction.roles.add(correctRank.role_id)
+        }
+
+        return msg.reply(`${memberToSanction} now has ${newXp} XP and is on level ${newLevel}.`)
     }
 
     if (command === 'setlevel') {
