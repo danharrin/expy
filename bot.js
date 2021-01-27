@@ -5,11 +5,6 @@ const config = {
     dBumpXp: 50,
 
     /**
-     * The higher the number, the less XP is required to reach the next level.
-     */
-    levelConstant: 0.25,
-
-    /**
      * The number of characters in an average message.
      */
     xpIncreaseConstant: 200,
@@ -83,11 +78,11 @@ const Token = sequelize.define('tokens', {
 })
 
 const calculateLevel = (xp) => {
-    return Math.floor(Math.sqrt(+xp) * config.levelConstant)
+    return Math.floor(Math.sqrt(+xp) * 0.25)
 }
 
 const calculateXp = (level) => {
-    return Math.floor(Math.pow(+level / config.levelConstant, 2))
+    return Math.floor(Math.pow(+level / 0.25, 2))
 }
 
 client.on('guildMemberAdd', async (member) => {
@@ -140,7 +135,9 @@ client.on('message', async (msg) => {
 
                     if (userId.startsWith('!')) userId = userId.slice(1)
 
-                    let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: userId }}) || await Member.create({ guild_id: msg.guild.id, user_id: userId })
+                    let memberToReward = msg.guild.members.cache.find((member) => +member.id === +userId)
+
+                    let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: userId }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToReward.id })
 
                     let newXp = member.xp + config.dBumpXp
 
@@ -148,7 +145,7 @@ client.on('message', async (msg) => {
 
                     await member.update({ xp: newXp })
 
-                    msg.channel.send(`${mention} thank you for \`!d bump\`ing! Here's ${config.dBumpXp} XP, for a new total of ${newXp}.`)
+                    msg.channel.send(`${memberToReward} thank you for \`!d bump\`ing! Here's ${config.dBumpXp} XP, for a new total of ${newXp}.`)
 
                     let level = calculateLevel(member.xp)
 
@@ -160,10 +157,10 @@ client.on('message', async (msg) => {
                         ranks.forEach((rank) => {
                             if (correctRank && rank.role_id === correctRank.role_id) return
 
-                            msg.member.roles.remove(rank.role_id)
+                            memberToReward.roles.remove(rank.role_id)
                         })
 
-                        if (correctRank) msg.member.roles.add(correctRank.role_id)
+                        if (correctRank) memberToReward.roles.add(correctRank.role_id)
                     }
 
                     if (member.last_level_reported < level) {
@@ -172,10 +169,10 @@ client.on('message', async (msg) => {
                                 color: 0xc026d3,
                                 description: `You just reached level ${level}.`,
                                 thumbnail: {
-                                    url: msg.author.displayAvatarURL(),
+                                    url: memberToReward.user.displayAvatarURL(),
                                 },
                                 timestamp: new Date(),
-                                title: `Congratulations ${msg.author.username}!`,
+                                title: `Congratulations ${memberToReward.user.username}!`,
                             },
                         })
 
