@@ -332,7 +332,7 @@ client.on('message', async (msg) => {
 
         if (! channelToBlacklist) return msg.reply(`please specify a member or channel to blacklist.`)
 
-        let blacklistedChannel = await BlacklistedChannel.findOne({ where: { id: channelToBlacklist.id }}) || await BlacklistedChannel.create({ id: channelToBlacklist.id, guild_id: msg.guild.id })
+        let blacklistedChannel = await BlacklistedChannel.findOne({ where: { id: channelToBlacklist.id }})
 
         let actionDescription = 'blacklisted'
 
