@@ -86,9 +86,9 @@ const calculateXp = (level) => {
 client.on('guildMemberAdd', async (member) => {
     if (member.bot) return
 
-    let memberToAdd = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: member.id }})
+    let memberToAdd = await Member.findOne({ where: { guild_id: member.guild.id, user_id: member.id }})
 
-    if (! memberToAdd) memberToAdd = await Member.create({ guild_id: msg.guild.id, user_id: member.id })
+    if (! memberToAdd) memberToAdd = await Member.create({ guild_id: member.guild.id, user_id: member.id })
 
     if (! memberToAdd.is_member) await memberToAdd.update({ is_member: true })
 
@@ -112,7 +112,7 @@ client.on('guildMemberAdd', async (member) => {
 client.on('guildMemberRemove', async (member) => {
     if (member.bot) return
 
-    let memberToDeactivate = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: member.id }})
+    let memberToDeactivate = await Member.findOne({ where: { guild_id: member.guild.id, user_id: member.id }})
 
     if (memberToDeactivate && memberToDeactivate.is_member) member = await memberToDeactivate.update({ is_member: false })
 })
