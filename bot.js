@@ -493,6 +493,46 @@ client.on('message', async (msg) => {
         let reply = await msg.reply(`the token \`${key}\` has been revoked.`)
     }
 
+    if (command === 'setlevel') {
+        if (! msg.member.hasPermission('ADMINISTRATOR')) return
+
+        if (args.length < 2) return msg.reply(`please specify a member and the level to set.`)
+
+        let memberToModify = msg.mentions.members.first() || msg.guild.members.cache.find((member) => +member.id === +args[0])
+
+        if (! memberToModify) return msg.reply(`please specify a member to modify.`)
+
+        let newLevel = +args[1]
+
+        if (newLevel < 0) newLevel = 0
+
+        if (! Number.isInteger(newLevel)) return msg.reply(`please specify the member's new level.`)
+
+        let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToModify.id }})
+
+        if (! member) member = await Member.create({ guild_id: msg.guild.id, user_id: memberToModify.id })
+
+        let newXp = calculateXp(newLevel)
+
+        await member.update({ xp: newXp })
+
+        let ranks = await Rank.findAll({ order: [['level', 'DESC']], where: { guild_id: msg.guild.id } })
+
+        if (ranks.length) {
+            let correctRank = ranks.find((rank) => +rank.level <= newLevel)
+
+            ranks.forEach((rank) => {
+                if (correctRank && rank.role_id === correctRank.role_id) return
+
+                memberToModify.roles.remove(rank.role_id)
+            })
+
+            if (correctRank) memberToModify.roles.add(correctRank.role_id)
+        }
+
+        return msg.reply(`${memberToModify} now has ${newXp} XP and is on level ${newLevel}.`)
+    }
+
     if (command === 'setxp') {
         if (! msg.member.hasPermission('ADMINISTRATOR')) return
 
