@@ -15,9 +15,10 @@ class Member extends JsonResource
     public function toArray($request)
     {
         return [
+            'id' => $this->user_id,
             'guild_id' => $this->guild_id,
             'is_blacklisted' => $this->is_blacklisted,
-            'user_id' => $this->user_id,
+            'level' => floor(sqrt($this->xp) * 0.25),
             'xp' => $this->xp,
         ];
     }
