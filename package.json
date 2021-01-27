@@ -1,0 +1,22 @@
+{
+    "private": true,
+    "scripts": {
+        "dev": "npm run development",
+        "development": "mix",
+        "watch": "mix watch",
+        "watch-poll": "mix watch -- --watch-options-poll=1000",
+        "hot": "mix watch --hot",
+        "prod": "npm run production",
+        "production": "mix --production"
+    },
+    "dependencies": {
+        "discord.js": "^12.5.1",
+        "dotenv": "^8.2.0",
+        "mysql2": "^2.2.5",
+        "sequelize": "^6.4.0"
+    },
+    "devDependencies": {
+        "laravel-mix": "^6.0.6",
+        "postcss": "^8.1.14"
+    }
+}
