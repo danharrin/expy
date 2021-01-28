@@ -165,7 +165,7 @@ client.on('message', async (msg) => {
                         if (correctRank) memberToReward.roles.add(correctRank.role_id)
                     }
 
-                    if (member.last_level_reported < level) {
+                    if (member.last_level_reported !== level) {
                         msg.channel.send({
                             embed: {
                                 color: 0xc026d3,
@@ -211,7 +211,7 @@ client.on('message', async (msg) => {
             if (correctRank) msg.member.roles.add(correctRank.role_id)
         }
 
-        if (member.last_level_reported < level) {
+        if (member.last_level_reported !== level) {
             msg.channel.send({
                 embed: {
                     color: 0xc026d3,
