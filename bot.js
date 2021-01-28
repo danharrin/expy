@@ -2,7 +2,7 @@ const config = {
     /**
      * Amount of XP rewarded when the user !d bumps successfully.
      */
-    dBumpXp: 50,
+    dBumpXp: 25,
 
     /**
      * The number of characters in an average message.
@@ -191,7 +191,7 @@ client.on('message', async (msg) => {
     let channelIsBlacklisted = await BlacklistedChannel.findOne({ where: { id: msg.channel.id } })
 
     if (! member.is_blacklisted && ! channelIsBlacklisted) {
-        let xpIncrease = 1 + Math.floor(msg.content.length / config.xpIncreaseConstant)
+        let xpIncrease = 1 + Math.pow(Math.floor(msg.content.length / config.xpIncreaseConstant), 2)
 
         await member.update({ xp: member.xp + xpIncrease })
 
