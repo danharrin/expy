@@ -484,11 +484,11 @@ client.on('message', async (msg) => {
 
         if (newXp < 0) newXp = 0
 
-        await member.update({ xp: newXp })
+        let newLevel = calculateLevel(newXp)
+
+        await member.update({ last_level_reported: newLevel, xp: newXp })
 
         let ranks = await Rank.findAll({ order: [['level', 'DESC']], where: { guild_id: msg.guild.id } })
-
-        let newLevel = calculateLevel(newXp)
 
         if (ranks.length) {
             let correctRank = ranks.find((rank) => +rank.level <= newLevel)
@@ -564,11 +564,11 @@ client.on('message', async (msg) => {
 
         if (newXp < 0) newXp = 0
 
-        await member.update({ xp: newXp })
+        let newLevel = calculateLevel(newXp)
+
+        await member.update({ last_level_reported: newLevel, xp: newXp })
 
         let ranks = await Rank.findAll({ order: [['level', 'DESC']], where: { guild_id: msg.guild.id } })
-
-        let newLevel = calculateLevel(newXp)
 
         if (ranks.length) {
             let correctRank = ranks.find((rank) => +rank.level <= newLevel)
@@ -604,7 +604,7 @@ client.on('message', async (msg) => {
 
         let newXp = calculateXp(newLevel)
 
-        await member.update({ xp: newXp })
+        await member.update({ last_level_reported: newLevel, xp: newXp })
 
         let ranks = await Rank.findAll({ order: [['level', 'DESC']], where: { guild_id: msg.guild.id } })
 
@@ -640,11 +640,11 @@ client.on('message', async (msg) => {
 
         let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: memberToModify.id }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToModify.id })
 
-        await member.update({ xp: newXp })
+        let newLevel = calculateLevel(newXp)
+
+        await member.update({ last_level_reported: newLevel, xp: newXp })
 
         let ranks = await Rank.findAll({ order: [['level', 'DESC']], where: { guild_id: msg.guild.id } })
-
-        let newLevel = calculateLevel(newXp)
 
         if (ranks.length) {
             let correctRank = ranks.find((rank) => +rank.level <= newLevel)
