@@ -39,6 +39,10 @@ const Guild = sequelize.define('guilds', {
 })
 
 const Member = sequelize.define('members', {
+    character_carry: {
+        type: Sequelize.BIGINT.UNSIGNED,
+        defaultValue: 0,
+    },
     guild_id: Sequelize.BIGINT.UNSIGNED,
     is_blacklisted: {
         type: Sequelize.BOOLEAN,
@@ -191,9 +195,15 @@ client.on('message', async (msg) => {
     let channelIsBlacklisted = await BlacklistedChannel.findOne({ where: { id: msg.channel.id } })
 
     if (! member.is_blacklisted && ! channelIsBlacklisted) {
-        let xpIncrease = 1 + Math.pow(Math.floor(msg.content.length / config.xpIncreaseConstant), 2)
+        let messageLengthAndCharacterCarry = msg.content.length + member.character_carry
 
-        await member.update({ xp: member.xp + xpIncrease })
+        let xpIncrease = Math.pow(Math.floor(messageLengthAndCharacterCarry / config.xpIncreaseConstant), 2)
+
+        let newCharacterCarry = messageLengthAndCharacterCarry % config.xpIncreaseConstant
+        
+        let newXp = member.xp + xpIncrease
+
+        await member.update({ character_carry: newCharacterCarry, xp: newXp })
 
         let level = calculateLevel(member.xp)
 

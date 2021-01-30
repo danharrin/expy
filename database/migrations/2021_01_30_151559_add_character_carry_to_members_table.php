@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateBlacklistedChannelsTable extends Migration
+class AddCharacterCarryToMembersTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,9 +13,8 @@ class CreateBlacklistedChannelsTable extends Migration
      */
     public function up()
     {
-        Schema::create('blacklisted_channels', function (Blueprint $table) {
-            $table->bigInteger('id')->unsigned()->primary();
-            $table->foreignId('guild_id')->constrained('guilds')->cascadeOnDelete();
+        Schema::table('members', function (Blueprint $table) {
+            $table->integer('character_carry')->unsigned()->default(0)->after('id');
         });
     }
 
@@ -26,6 +25,8 @@ class CreateBlacklistedChannelsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('blacklisted_channels');
+        Schema::table('members', function (Blueprint $table) {
+            $table->dropColumn('character_carry');
+        });
     }
 }

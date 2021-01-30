@@ -14,7 +14,7 @@ class CreateGuildsTable extends Migration
     public function up()
     {
         Schema::create('guilds', function (Blueprint $table) {
-            $table->unsignedBigInteger('id')->primary();
+            $table->bigInteger('id')->unsigned()->primary();
             $table->string('prefix')->default('$');
         });
     }

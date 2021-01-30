@@ -16,8 +16,8 @@ class CreateRanksTable extends Migration
         Schema::create('ranks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('guild_id')->constrained('guilds')->cascadeOnDelete();
-            $table->unsignedInteger('level');
-            $table->unsignedBigInteger('role_id');
+            $table->integer('level')->unsigned();
+            $table->bigInteger('role_id')->unsigned();
         });
     }
 
