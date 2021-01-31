@@ -359,7 +359,7 @@ client.on('message', async (msg) => {
         return msg.reply(`${channelToBlacklist} has been ${actionDescription}.`)
     }
 
-    if (command === 'leaderboard') {
+    if (command === 'leaderboard' || command === 'lb') {
         let page = +args[0]
 
         if (! page || ! Number.isInteger(page) || page < 1) page = 1
