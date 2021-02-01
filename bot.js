@@ -197,7 +197,7 @@ client.on('message', async (msg) => {
     if (! member.is_blacklisted && ! channelIsBlacklisted) {
         let messageLengthAndCharacterCarry = msg.content.length + member.character_carry
 
-        let xpIncrease = Math.pow(Math.floor(messageLengthAndCharacterCarry / config.xpIncreaseConstant), 2)
+        let xpIncrease = Math.floor(messageLengthAndCharacterCarry / config.xpIncreaseConstant)
 
         let newCharacterCarry = messageLengthAndCharacterCarry % config.xpIncreaseConstant
         
