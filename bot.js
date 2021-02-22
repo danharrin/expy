@@ -89,6 +89,12 @@ const calculateXp = (level) => {
     return Math.floor(Math.pow(+level / 0.25, 2))
 }
 
+const logAbnormalXpChange = (originalXp, newXp, member, guild, message) => {
+    let channel = client.channels.fetch('813463898019201067')
+
+    channel.send(`${member} from guild ${guild.name} went from ${originalXp} to ${newXp} when ${message}.`)
+}
+
 client.on('guildMemberAdd', async (member) => {
     if (member.bot) return
 
@@ -149,6 +155,10 @@ client.on('message', async (msg) => {
 
                     if (newXp < 0) newXp = 0
 
+                    if (member.xp > newXp) {
+                        logAbnormalXpChange(member.xp, newXp, memberToReward, msg.guild, 'they were rewarded for bumping')
+                    }
+
                     await member.update({ xp: newXp })
 
                     msg.channel.send(`${memberToReward} thank you for \`!d bump\`ing! Here's ${config.dBumpXp} XP, for a new total of ${newXp}.`)
@@ -202,6 +212,10 @@ client.on('message', async (msg) => {
         let newCharacterCarry = messageLengthAndCharacterCarry % config.xpIncreaseConstant
         
         let newXp = member.xp + xpIncrease
+
+        if (member.xp > newXp) {
+            logAbnormalXpChange(member.xp, newXp, msg.author, msg.guild, 'they were rewarded for a message')
+        }
 
         await member.update({ character_carry: newCharacterCarry, xp: newXp })
 
@@ -496,6 +510,10 @@ client.on('message', async (msg) => {
 
         let newLevel = calculateLevel(newXp)
 
+        if (member.xp > newXp) {
+            logAbnormalXpChange(member.xp, newXp, memberToReward, msg.guild, 'they were rewarded')
+        }
+
         await member.update({ last_level_reported: newLevel, xp: newXp })
 
         let ranks = await Rank.findAll({ order: [['level', 'DESC']], where: { guild_id: msg.guild.id } })
@@ -723,6 +741,10 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
         let duration = Math.round(new Date().getMinutes() - new Date(member.joined_voice_at).getMinutes())
 
         let newXp = member.xp + duration
+
+        if (member.xp > newXp) {
+            logAbnormalXpChange(member.xp, newXp, newState.member, newState.guild, 'they were rewarded for VC')
+        }
 
         await member.update({ joined_voice_at: null, xp: newXp })
     }
