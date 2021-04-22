@@ -135,8 +135,8 @@ client.on('message', async (msg) => {
     if (msg.author.bot) {
         msg.embeds
             .filter((embed) => (
-                (embed.description && embed.description.toLowerCase().includes('bump done')) ||
-                (embed.title && embed.title.toLowerCase().includes('link bumped'))
+                (embed.description && embed.description.toLowerCase().includes('bump done')) || // DISBOARD
+                (embed.title && embed.title.toLowerCase().includes('link bumped')) // dsc.gg
             ))
             .forEach((embed) => {
                 let mentions = embed.description.match(/<@!?\d{17,19}>/g)
