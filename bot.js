@@ -1,8 +1,8 @@
 const config = {
     /**
-     * Amount of XP rewarded when the user !d bumps successfully.
+     * Amount of XP rewarded when the user bumps the server successfully.
      */
-    dBumpXp: 25,
+    bumpXp: 25,
 
     /**
      * The number of characters in an average message.
@@ -134,7 +134,10 @@ client.on('message', async (msg) => {
 
     if (msg.author.bot) {
         msg.embeds
-            .filter((embed) => embed.description && embed.description.toLowerCase().includes('bump done'))
+            .filter((embed) => embed.description && (
+                embed.description.toLowerCase().includes('bump done') ||
+                embed.description.toLowerCase().includes('has been bumped')
+            ))
             .forEach((embed) => {
                 let mentions = embed.description.match(/<@!?\d{17,19}>/g)
 
@@ -151,17 +154,17 @@ client.on('message', async (msg) => {
 
                     if (member.is_blacklisted) return
 
-                    let newXp = member.xp + config.dBumpXp
+                    let newXp = member.xp + config.bumpXp
 
                     if (newXp < 0) newXp = 0
 
                     if (member.xp > newXp) {
-                        logAbnormalXpChange(member.xp, newXp, memberToReward, msg.guild, 'they were rewarded for bumping')
+                        logAbnormalXpChange(member.xp, newXp, memberToReward, msg.guild, 'they were rewarded for bumping the server')
                     }
 
                     await member.update({ xp: newXp })
 
-                    msg.channel.send(`${memberToReward} thank you for \`!d bump\`ing! Here's ${config.dBumpXp} XP, for a new total of ${newXp}.`)
+                    msg.channel.send(`${memberToReward} thank you for bumping the server! Here's ${config.bumpXp} XP, for a new total of ${newXp}.`)
 
                     let level = calculateLevel(member.xp)
 
