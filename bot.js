@@ -133,11 +133,9 @@ client.on('message', async (msg) => {
     if (msg.webhookID) return
 
     if (msg.author.bot) {
+        // DISBOARD
         msg.embeds
-            .filter((embed) => (
-                (embed.description && embed.description.toLowerCase().includes('bump done')) || // DISBOARD
-                (embed.title && embed.title.toLowerCase().includes('link bumped')) // dsc.gg
-            ))
+            .filter((embed) => embed.description && embed.description.toLowerCase().includes('bump done'))
             .forEach((embed) => {
                 let mentions = embed.description.match(/<@!?\d{17,19}>/g)
 
@@ -198,6 +196,67 @@ client.on('message', async (msg) => {
                         await member.update({ last_level_reported: level })
                     }
                 })
+            })
+
+        // dsc.gg
+        msg.embeds
+            .filter((embed) => embed.title && embed.title.toLowerCase().includes('link bumped'))
+            .forEach(async (embed) => {
+                let channelMessages = await msg.channel.messages.fetch()
+
+                let bumpTriggerMessage = messages.find((message) => message.content.toLowerCase().includes('>bump'))
+
+                if (! bumpTriggerMessage) return
+
+                let memberToReward = bumpTriggerMessage.member
+
+                let member = await Member.findOne({ where: { guild_id: msg.guild.id, user_id: userId }}) || await Member.create({ guild_id: msg.guild.id, user_id: memberToReward.id })
+
+                if (member.is_blacklisted) return
+
+                let newXp = member.xp + config.bumpXp
+
+                if (newXp < 0) newXp = 0
+
+                if (member.xp > newXp) {
+                    logAbnormalXpChange(member.xp, newXp, memberToReward, msg.guild, 'they were rewarded for bumping the server')
+                }
+
+                await member.update({ xp: newXp })
+
+                msg.channel.send(`${memberToReward} thank you for bumping the server! Here's ${config.bumpXp} XP, for a new total of ${newXp}.`)
+
+                let level = calculateLevel(member.xp)
+
+                let ranks = await Rank.findAll({ order: [['level', 'DESC']], where: { guild_id: msg.guild.id } })
+
+                if (ranks.length) {
+                    let correctRank = ranks.find((rank) => +rank.level <= +level)
+
+                    ranks.forEach((rank) => {
+                        if (correctRank && rank.role_id === correctRank.role_id) return
+
+                        memberToReward.roles.remove(rank.role_id)
+                    })
+
+                    if (correctRank) memberToReward.roles.add(correctRank.role_id)
+                }
+
+                if (member.last_level_reported !== level) {
+                    msg.channel.send({
+                        embed: {
+                            color: 0xc026d3,
+                            description: `You just reached level ${level}.`,
+                            thumbnail: {
+                                url: memberToReward.user.displayAvatarURL(),
+                            },
+                            timestamp: new Date(),
+                            title: `Congratulations ${memberToReward.user.username}!`,
+                        },
+                    })
+
+                    await member.update({ last_level_reported: level })
+                }
             })
 
         return
