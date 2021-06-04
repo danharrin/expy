@@ -38,7 +38,7 @@ Discord bot for member XP and ranking.
 
 `$token` - Get a new API token for this guild.
 
-`$revoketoken <token<` - Revoke an API token for this guild.
+`$revoketoken <token>` - Revoke an API token for this guild.
 
 ## API
 
